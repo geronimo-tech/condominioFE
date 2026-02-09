@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, createRef } from "react";
+import { CSSTransition, TransitionGroup } from "react-transition-group";
+import "./App.css";
 
 function App() {
   // LOGIN
@@ -11,12 +13,24 @@ function App() {
     JSON.parse(localStorage.getItem("user"))
   );
 
+  // TRANSICIONES
+  const [loading, setLoading] = useState(false);
+  const [showAlert, setShowAlert] = useState(false);
+
   // NOTIFICACIONES
   const [notifications, setNotifications] = useState([]);
   const [hasNew, setHasNew] = useState(false);
 
-  // LOGIN
+  // REFS (OBLIGATORIO EN REACT 18)
+  const loadingRef = useRef(null);
+  const alertRef = useRef(null);
+  const nodeRefs = useRef({});
+
+  // LOGIN (PETICIÓN HTTP + TRANSICIONES)
   const login = async () => {
+    setLoading(true);
+    setShowAlert(false);
+
     try {
       const res = await fetch("http://127.0.0.1:8000/api/login", {
         method: "POST",
@@ -31,12 +45,15 @@ function App() {
 
       setUser(data.user);
       setMsg(`Bienvenido ${data.user.name} (${data.user.role})`);
-    } catch (e) {
+    } catch {
       setMsg("Error en login");
+    } finally {
+      setLoading(false);
+      setShowAlert(true);
     }
   };
 
-  // SIMULACIÓN DE WEBSOCKET (luego se conecta a Laravel Reverb)
+  // SIMULACIÓN DE NOTIFICACIONES
   useEffect(() => {
     if (!user) return;
 
@@ -44,8 +61,7 @@ function App() {
       const nueva = {
         id: Date.now(),
         tipo: "Multa",
-        mensaje: "Tienes una multa pendiente",
-        url: "/multas/1"
+        mensaje: "Tienes una multa pendiente"
       };
 
       setNotifications((prev) => [nueva, ...prev]);
@@ -60,16 +76,11 @@ function App() {
     localStorage.clear();
     setUser(null);
     setNotifications([]);
-  };
-
-  // VER NOTIFICACIÓN
-  const openNotification = (n) => {
-    alert(`Abrir detalle: ${n.tipo}`);
     setHasNew(false);
   };
 
   return (
-    <div style={{ padding: "2rem" }}>
+    <div className="container">
       {!user ? (
         <>
           <h1>Login Condominio</h1>
@@ -79,7 +90,6 @@ function App() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-          <br /><br />
 
           <input
             type="password"
@@ -87,39 +97,68 @@ function App() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          <br /><br />
 
-          <button onClick={login}>Entrar</button>
+          <button onClick={login} disabled={loading}>
+            Entrar
+          </button>
 
-          <p>{msg}</p>
+          {/* LOADING */}
+          <CSSTransition
+            in={loading}
+            timeout={300}
+            classNames="fade"
+            unmountOnExit
+            nodeRef={loadingRef}
+          >
+            <p ref={loadingRef} className="loading">
+              Cargando...
+            </p>
+          </CSSTransition>
+
+          {/* ALERTA */}
+          <CSSTransition
+            in={showAlert}
+            timeout={300}
+            classNames="alert"
+            unmountOnExit
+            nodeRef={alertRef}
+          >
+            <p ref={alertRef} className="alert-box">
+              {msg}
+            </p>
+          </CSSTransition>
         </>
       ) : (
         <>
           <h2>Panel principal</h2>
 
-          {/* BOTÓN NOTIFICACIONES */}
-          <button
-            style={{
-              background: hasNew ? "red" : "gray",
-              color: "white",
-              padding: "10px",
-              borderRadius: "5px"
-            }}
-          >
+          <button className={hasNew ? "bell new" : "bell"}>
             🔔 {hasNew ? "Nueva notificación" : "Notificaciones"}
           </button>
 
-          <ul>
-            {notifications.map((n) => (
-              <li
-                key={n.id}
-                style={{ cursor: "pointer" }}
-                onClick={() => openNotification(n)}
-              >
-                [{n.tipo}] {n.mensaje}
-              </li>
-            ))}
-          </ul>
+          <TransitionGroup component="ul" className="notificaciones">
+            {notifications.map((n) => {
+              if (!nodeRefs.current[n.id]) {
+                nodeRefs.current[n.id] = createRef();
+              }
+
+              return (
+                <CSSTransition
+                  key={n.id}
+                  timeout={300}
+                  classNames="item"
+                  nodeRef={nodeRefs.current[n.id]}
+                >
+                  <li
+                    ref={nodeRefs.current[n.id]}
+                    onClick={() => setHasNew(false)}
+                  >
+                    [{n.tipo}] {n.mensaje}
+                  </li>
+                </CSSTransition>
+              );
+            })}
+          </TransitionGroup>
 
           <button onClick={logout}>Cerrar sesión</button>
         </>
