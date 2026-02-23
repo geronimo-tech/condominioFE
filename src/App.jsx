@@ -21,12 +21,12 @@ function App() {
   const [notifications, setNotifications] = useState([]);
   const [hasNew, setHasNew] = useState(false);
 
-  // REFS (OBLIGATORIO EN REACT 18)
+  // REFS (React 18)
   const loadingRef = useRef(null);
   const alertRef = useRef(null);
   const nodeRefs = useRef({});
 
-  // LOGIN (PETICIÓN HTTP + TRANSICIONES)
+  // LOGIN
   const login = async () => {
     setLoading(true);
     setShowAlert(false);
@@ -34,19 +34,25 @@ function App() {
     try {
       const res = await fetch("http://127.0.0.1:8000/api/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({ email, password })
       });
 
       const data = await res.json();
 
+      if (!res.ok) {
+        throw new Error(data.message || "Error en login");
+      }
+
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
       setUser(data.user);
-      setMsg(`Bienvenido ${data.user.name} (${data.user.role})`);
-    } catch {
-      setMsg("Error en login");
+      setMsg(`Bienvenido ${data.user.name}`);
+    } catch (error) {
+      setMsg(error.message);
     } finally {
       setLoading(false);
       setShowAlert(true);
@@ -77,6 +83,8 @@ function App() {
     setUser(null);
     setNotifications([]);
     setHasNew(false);
+    setEmail("");
+    setPassword("");
   };
 
   return (
