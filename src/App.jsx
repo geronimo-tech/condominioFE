@@ -34,7 +34,36 @@ function App() {
   const alertRef = useRef(null);
   const nodeRefs = useRef({});
 
+  // =============================
+  // VALIDAR SESIÓN ACTIVA
+  // =============================
+
+  useEffect(() => {
+
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      logout();
+    }
+
+  }, []);
+
+  // =============================
+  // VALIDAR ROL DE USUARIO
+  // =============================
+
+  const checkRole = (role) => {
+
+    if (!user) return false;
+
+    return user.role === role;
+
+  };
+
+  // =============================
   // LOGIN
+  // =============================
+
   const login = async () => {
 
     setLoading(true);
@@ -78,7 +107,10 @@ function App() {
 
   };
 
+  // =============================
   // SIMULACIÓN DE NOTIFICACIONES
+  // =============================
+
   useEffect(() => {
 
     if (!user) return;
@@ -100,7 +132,10 @@ function App() {
 
   }, [user]);
 
+  // =============================
   // LOGOUT
+  // =============================
+
   const logout = () => {
 
     localStorage.clear();
@@ -179,11 +214,15 @@ function App() {
 
         <>
           <RecuperarPassword />
+
           <br />
+
           <button onClick={() => setView("verificar")}>
             Ya tengo código
           </button>
+
           <br /><br />
+
           <button onClick={() => setView("login")}>
             Volver al login
           </button>
@@ -193,11 +232,15 @@ function App() {
 
         <>
           <VerificarCodigo />
+
           <br />
+
           <button onClick={() => setView("cambiar")}>
             Código verificado
           </button>
+
           <br /><br />
+
           <button onClick={() => setView("login")}>
             Volver al login
           </button>
@@ -207,7 +250,9 @@ function App() {
 
         <>
           <CambiarPassword />
+
           <br /><br />
+
           <button onClick={() => setView("login")}>
             Ir al login
           </button>
@@ -217,6 +262,18 @@ function App() {
 
         <>
           <h2>Panel principal</h2>
+
+          {/* VALIDACIÓN DE ROLES */}
+
+          {checkRole("admin") && (
+            <p>Panel de administración</p>
+          )}
+
+          {checkRole("usuario") && (
+            <p>Panel de residente</p>
+          )}
+
+          {/* NOTIFICACIONES */}
 
           <button className={hasNew ? "bell new" : "bell"}>
             🔔 {hasNew ? "Nueva notificación" : "Notificaciones"}
